@@ -4,24 +4,10 @@ import json
 import re
 import os
 from transformers import AutoTokenizer
-from prompts.constraint_assessment import critique_generation_prompt
-
-def parse_solution(text):
-    return text.split("</think>")[-1].strip()
+from prompts.overall_assessment import critique_generation_prompt
 
 
-def reconstruct(checklist):    
-    prompt = ""
-    if checklist == None:
-        return prompt
-    for i, c in enumerate(checklist):
-        if prompt != "":
-            prompt += "\n\n"
-        prompt += f"[检查项{i+1}-开始]\n{c.strip()}\n[检查项{i+1}-结束]"
-    return prompt.strip()
-
-
-def build_prompt(item, response):
+def build_prompt(item, response_a, response_b):
     messages = item["messages"]
     system_prompt = ""
     history = ""
@@ -39,7 +25,7 @@ def build_prompt(item, response):
             history += f"[第{cnt}轮人工智能助手的回复-开始]\n{turn['content'].strip()}\n[第{cnt}轮人工智能助手的回复-结束]"
             cnt += 1
     user_prompt = messages[-1]["content"]
-    return critique_generation_prompt.format(system_prompt=system_prompt, history=history, user_prompt=user_prompt, assistant_response=response, checklist=reconstruct(item["checklist"]))
+    return critique_generation_prompt.format(system_prompt=system_prompt, history=history, user_prompt=user_prompt, response_a=response_a, response_b=response_b)
 
 
 if __name__ == "__main__":
@@ -66,30 +52,43 @@ if __name__ == "__main__":
     
     with open(args.input_path, "r", encoding='utf-8') as f:
         data = json.load(f)
+    
+    with open("position_maps_examples.json", "r", encoding="utf-8") as f:
+        position_maps = json.load(f)
+    
     outs = []
     prompts = []
     for i, d in enumerate(data):
-        for j, r in enumerate(d["responses"]):
-            messages = [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": build_prompt(d, r["response"])}
-            ]
-            prompt = tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True
-            )
-            prompts.append(prompt)
+        for u in range(len(d["responses"])):
+            for v in range(len(d["responses"])):
+                if u == v:
+                    continue
+                position = position_maps[str(d["id"])][f"{min(u, v)}_{max(u, v)}"]
+                if (position == 0 and u < v) or (position == 1 and u > v):
+                    messages = [
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": build_prompt(d, d["responses"][u]["response"], d["responses"][v]["response"])}
+                    ]
+                    prompt = tokenizer.apply_chat_template(
+                        messages,
+                        tokenize=False,
+                        add_generation_prompt=True
+                    )
+                    prompts.append(prompt)
+
     outputs = llm.generate(prompts, sampling_params)
-
     cnt = 0
-    outs = []
     for i, d in enumerate(data):
-        for j, r in enumerate(d["responses"]):
-            generated_text = outputs[cnt].outputs[0].text
-            data[i]["responses"][j]["critique"] = generated_text
-            cnt += 1
+        data[i]["pairwise_evaluation_results"] = data[i].get("pairwise_evaluation_results", {})
+        for u in range(len(d["responses"])):
+            for v in range(len(d["responses"])):
+                if u == v:
+                    continue
+                position = position_maps[str(d["id"])][f"{min(u, v)}_{max(u, v)}"]
+                if (position == 0 and u < v) or (position == 1 and u > v):
+                    data[i]["pairwise_evaluation_results"][f"{u}_{v}"] = outputs[cnt].outputs[0].text
+                    cnt += 1
 
-    with open(f"constraint_assessment_results/{args.model_name}.json", "w", encoding='utf-8') as f:
+    with open(f"overall_assessment_results/{args.model_name}.json", "w", encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         
