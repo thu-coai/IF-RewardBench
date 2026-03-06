@@ -1,6 +1,6 @@
 # IF-RewardBench: Benchmarking Judge Models for Instruction-Following Evaluation
 
-This repository is the official implementation of [IF-RewardBench: Benchmarking Judge Models for Instruction-Following Evaluation](https://arxiv.org/abs/2511.01014). 
+This repository is the official implementation of [IF-RewardBench: Benchmarking Judge Models for Instruction-Following Evaluation](https://arxiv.org/abs/2603.04738). 
 
 IF-RewardBench is a comprehensive meta-evaluation benchmark to assess the capability of judge models in instruction-following evaluation. It comprises 842 diverse instructions covering single-turn interaction, multi-turn interaction, and system-prompt steerability scenarios. For each instruction, our benchmark constructs a preference graph containing all pairwise preferences among multiple responses based on instruction-following quality, enabling a listwise evaluation paradigm to assess the ranking capabilities of judge models.
 
