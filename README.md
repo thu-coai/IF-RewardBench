@@ -61,3 +61,15 @@ cd metrics/
 python analysis_overall_assessment.py
 ```
 
+## 👏 Citation
+
+```
+@article{wen2026if,
+  title={IF-RewardBench: Benchmarking Judge Models for Instruction-Following Evaluation},
+  author={Wen, Bosi and Niu, Yilin and Wang, Cunxiang and Ling, Xiaoying and Zhang, Ying and Ke, Pei and Wang, Hongning and Huang, Minlie},
+  journal={arXiv preprint arXiv:2603.04738},
+  year={2026}
+}
+```
+
+Please kindly cite our paper if this paper and the codes are helpful.
